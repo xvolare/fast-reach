@@ -12,7 +12,11 @@
     </el-form>
     <el-button type="danger" @click="deleteSelectedEmployees">批量删除</el-button>
     <el-button type="primary" @click="addEmployee">新增员工</el-button>
-    <el-table :data="records" style="width: 100%; margin-top: 20px;">
+
+    <!-- 表格 -->
+    <template>
+    <el-table :data="records" style="width: 100%; margin-top: 20px;" border @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="55"  align="center"></el-table-column>
       <el-table-column prop="id" label="ID" width="180"></el-table-column>
       <el-table-column prop="name" label="姓名" width="180"></el-table-column>
     <el-table-column prop="account" label="账号"></el-table-column>
@@ -33,7 +37,7 @@
         </template>
       </el-table-column>
     </el-table>
-
+</template>
     <el-pagination @current-change="handlePageChange" :current-page="currentPage" :page-size="pageSize"
       layout="prev, pager, next, jumper" :total="total">
     </el-pagination>
@@ -77,6 +81,10 @@
           pageSize: this.pageSize,
         });
       },
+          // 复选框选中后执行的方法
+    handleSelectionChange(val) {
+      this.multipleSelection = val;
+    },
       clearSearch () {
         this.searchForm.name = '';
         this.fetchEmployees({
