@@ -11,8 +11,45 @@
       </el-form-item>
     </el-form>
     <el-button type="danger" @click="deleteSelectedEmployees">批量删除</el-button>
-    <el-button type="primary" @click="addEmployee">新增员工</el-button>
+    <el-button type="primary" @click="openDialogAdd">新增员工</el-button>
 
+    <el-dialog title="添加员工信息" :visible.sync="dialogFormVisibleAdd">
+          <el-form :model="form">
+            <el-form-item label="员工ID" :label-width="'120px'">
+              <el-input v-model="form.id" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="员工姓名" :label-width="'120px'">
+              <el-input v-model="form.name" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="员工账号" :label-width="'120px'">
+              <el-input v-model="form.account" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="员工电话" :label-width="'120px'">
+              <el-input v-model="form.phone" autocomplete="off"></el-input>
+            </el-form-item>
+
+            <el-form-item label="员工性别" :label-width="'120px'">
+              <el-select v-model="form.sex" placeholder="请选择菜品状态">
+                <el-option label="女" value=1></el-option>
+                <el-option label="男" value=0></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="更新时间" :label-width="'120px'">
+              <el-input v-model="form.updateTime" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="创建时间" :label-width="'120px'">
+              <el-input v-model="form.createTime" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="员工密码" :label-width="'120px'">
+              <el-input v-model="form.password" autocomplete="off"></el-input>
+            </el-form-item>
+          </el-form>
+          <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisibleAdd = false">取 消</el-button>
+            <el-button type="primary" @click="submitFormAdd">确 定</el-button>
+          </div>
+
+        </el-dialog>
     <!-- 表格 -->
     <template>
     <el-table :data="records" style="width: 100%; margin-top: 20px;" border @selection-change="handleSelectionChange">
@@ -70,6 +107,9 @@
           createTime: '',
           password: '',
         },
+        dialogFormVisible: false,
+        dialogFormVisibleAdd: false,
+        fileList: []
       };
     },
     methods: {
@@ -95,7 +135,7 @@
       },
       addEmployee () {
         // 跳转到新增员工界面
-        this.$router.push('/path/to/AddEmployeeView'); // 替换为实际的路由路径
+        this.$router.push('api/business/employee/add'); // 替换为实际的路由路径
       },
       editEmployee (employee) {
         // 跳转到编辑员工界面，并携带员工信息
@@ -144,10 +184,46 @@
           console.log(err.data.msg)
         })
       },
-      deleteSelectedEmployees () {
-        // 实现批量删除员工的逻辑
-        // 注意：这里需要实现选择逻辑，目前未提供
-      },
+      deleteSelectedEmployees() {
+    const ids = this.multipleSelection.map((employee) => employee.id);
+    if (ids.length === 0) {
+      this.$message({
+        type: 'warning',
+        message: '请至少选择一个员工进行删除'
+      });
+      return;
+    }
+
+    this.$confirm('此操作将永久删除选中的员工, 是否继续?', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      this.deleteEmployees(ids) // 调用后端批量删除接口
+        .then(() => {
+          this.$message({
+            type: 'success',
+            message: '删除成功!'
+          });
+          this.fetchEmployees({
+            page: this.currentPage,
+            pageSize: this.pageSize,
+          });
+        })
+        .catch(error => {
+          this.$message({
+            type: 'error',
+            message: '删除失败'
+          });
+          console.error('批量删除失败:', error);
+        });
+    }).catch(() => {
+      this.$message({
+        type: 'info',
+        message: '已取消删除'
+      });
+    });
+  },
       handlePageChange (newPage) {
         this.currentPage = newPage;
         this.fetchEmployees({
@@ -170,6 +246,60 @@
         }).catch(err => {
           console.log(err.response.data.msg);
         });
+      },
+
+/*       提交表单 */
+submitForm () {
+        this.dialogFormVisible = false
+        console.log(this.form.id)
+        axios.post('/api/business/employee/edit', {
+          id: this.form.id,
+          name: this.form.name,
+          account:this.form.account,
+          phone:this.form.phone,
+          sex: this.form.sex,
+          permission: this.form.permission,
+          updateTime: this.form.updateTime,
+          createTime: this.form.createTime,
+          password: this.form.password,
+        },
+          {
+            headers: {
+              "token": localStorage.getItem("token")
+            }
+          }).then(res => {
+            if (res.data.msg == "NOT_LOGIN") {
+              this.$router.push('/business/login')
+              return;
+            }
+            console.log(res.data);
+            location.reload();
+        })
+      },
+      async submitFormAdd () {
+        this.dialogFormVisibleAdd = false
+        var res = await axios.post('/api/business/employee/add',
+          {
+            description: this.form.description,
+            name: this.form.name,
+            price: this.form.price,
+            status: this.form.status
+          },
+          {
+            headers: {
+              "token": localStorage.getItem("token")
+            }
+          })
+        if (res.data.msg == "NOT_LOGIN") {
+          this.$router.push('/business/login')
+          return;
+        }
+        this.form.id = res.data.data;
+        console.log(this.form.id)
+        console.log(res.data);
+
+        this.update(this.newImg);
+        location.reload();
       },
     },
     mounted () {
