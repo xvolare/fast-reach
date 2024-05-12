@@ -33,7 +33,7 @@
       <el-table-column label="操作">
         <template slot-scope="scope">
           <el-button size="mini" @click="editEmployee(scope.row)">编辑</el-button>
-          <el-button size="mini" type="danger" @click="deleteEmployee(scope.row)">删除</el-button>
+          <el-button size="mini" type="danger" @click="open(scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -51,6 +51,7 @@
   export default {
     data () {
       return {
+        
         searchForm: {
           name: '', // 用于存储搜索框的值
         },
@@ -103,14 +104,45 @@
           query: { id: employee.id },
         });
       },
-      deleteEmployee (employee) {
-        // 调用删除员工的API，并执行删除操作
-        this.deleteEmployeeAction(employee.id).then(() => {
-          this.fetchEmployees({
-            page: this.currentPage,
-            pageSize: this.pageSize,
+      open (row) {
+        this.$confirm('此操作将删除该员工, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.deleteEmployee(row.id),
+            this.$message({
+              type: 'success',
+              message: '删除成功!'
+            });
+        }).catch(() => {
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
           });
         });
+      },
+      deleteEmployee (id) {
+        axios({//菜品删除
+          url: '/api/business/employee/delete',
+          method: 'delete',
+          headers: {
+            "token": localStorage.getItem('token')
+          },
+          params: {
+            id: id
+          }
+        }).then(res => {
+          if (res.data.msg == "NOT_LOGIN") {
+            this.$router.push('/business/login')
+            return;
+          }
+          location.reload();
+          console.log(res.data.data)
+
+        }).catch(err => {
+          console.log(err.data.msg)
+        })
       },
       deleteSelectedEmployees () {
         // 实现批量删除员工的逻辑
